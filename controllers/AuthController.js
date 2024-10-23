@@ -1,7 +1,7 @@
 const {PrismaClient} = require ("@prisma/client");
-const prosma = new PrismaClient();
+const prisma = new PrismaClient();
 
-class authController{
+class AuthController{
 
     static async cadastro(){
 
