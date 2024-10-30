@@ -1,7 +1,9 @@
 const {PrismaClient} = require ("@prisma/client");
 const prisma = new PrismaClient();
 
-const bcryptjs = require("bcryptjs"); //pacote do node que contém várias funções de criptografia senhas //
+//pacote do node que contém várias funções de criptografias//
+const bcryptjs = require("bcryptjs"); 
+const jwt = require("jsonwebtoken");
 
 class AuthController{
 
@@ -29,6 +31,8 @@ class AuthController{
             });
         }
 
+
+        //verifica usuarios já cadastrados com um e mail//
         const existe = await prisma.usuario.count({
             where:{
                 email: email,
@@ -42,10 +46,12 @@ class AuthController{
             });
         }
 
-        const salt = bcryptjs.genSaltSync(10); //valor aleatório que da uma camada a mais de segurança para a senha//
+        //valor aleatório que da uma camada a mais de segurança para a senha//
+        const salt = bcryptjs.genSaltSync(10); 
         const hashPassword = bcryptjs.hashSync(password, salt);
 
-        try { //cadastrar
+        //cadastrar//
+        try { 
            const usuario = await prisma.usuario.create ({
                 data: {
                     nome: nome,
@@ -60,21 +66,52 @@ class AuthController{
             return res.json({
                 erro: false,
                 mensagem: "Usuário cadastrado com sucesso!",
-                token: "122mmjgyg",
             });
         } catch (error) {
             return res.json({
                 erro: false,
                 mensagem: "Ocorreu um erro, tente novamente mais tarde!" + error,
-                token: "122mmjgyg",
             });
         }
-        }
+    }
 
         
 
     static async login (req, res){
 
+        const {email, password} = req.body;
+
+        const usuario = await prisma.usuario.findUnique({
+            where: {
+                email:email,
+            },
+        });
+
+        if(!usuario){
+            return res.json({
+                erro:true,
+                mensagem:"Usuário não encontrado",
+            });
+        }
+
+        const senhaCorreta = bcryptjs.compareSync(password, usuario.password);
+
+        if (!senhaCorreta){
+            return res.json({
+                erro: true,
+                mensagem: "Senha incorreta",
+            });
+        }
+
+    const token = jwt.sing({id: usuario.id}, "123456789", {
+        expiresIn: "1h",
+    });
+
+    res.json({
+        erro: false,
+        mensagem:"Autenticado com sucesso!",
+        token: token,
+    });
     }
 }
 
