@@ -1,5 +1,4 @@
-const {PrismaClient} = require ("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = require("../prisma/prismaClient");
 
 //pacote do node que contém várias funções de criptografias//
 const bcryptjs = require("bcryptjs"); 
@@ -11,21 +10,21 @@ class AuthController{
         const{nome, email, password} = req.body;
 
         if(!nome || nome.length < 6){
-            return res.json({
+            return res.status(422).json({
                 erro: true,
                 mensagem: "O nome deve ter pelo menos 6 caracteres",
             });
         }
 
         if(!email || email.length < 10){
-            return res.json({
+            return res.status(422).json({
                 erro: true,
                 mensagem: "O email deve ter pelo menos 10 caracteres",
             });
         }
 
         if(!password || password.length < 8){
-            return res.json({
+            return res.status(422).json({
                 erro: true,
                 mensagem: "A senha deve ter pelo menos 8 caracteres",
             });
@@ -40,7 +39,7 @@ class AuthController{
         });
 
         if(existe != 0){
-            return res.json({
+            return res.status(422).json({
                 erro: true,
                 mensagem: "Já existe usuário cadastrado em este e-mail.",
             });
@@ -63,19 +62,22 @@ class AuthController{
 
             console.log(JSON.stringify(usuario));
 
-            return res.json({
+            const token = jwt.sing({id: usuario.id}, process.env.SECRET_KEY, {
+                expiresIn: "1h",
+            });
+
+            return res.status(201).json({
                 erro: false,
                 mensagem: "Usuário cadastrado com sucesso!",
+                token: token,
             });
         } catch (error) {
-            return res.json({
+            return res.status(500).json({
                 erro: false,
                 mensagem: "Ocorreu um erro, tente novamente mais tarde!" + error,
             });
         }
-    }
-
-        
+    }    
 
     static async login (req, res){
 
@@ -88,31 +90,35 @@ class AuthController{
         });
 
         if(!usuario){
-            return res.json({
+            return res.status(422).json({
                 erro:true,
                 mensagem:"Usuário não encontrado",
             });
         }
-
+        //verificação da senha//
+        //o bcrypt vai pegar a senha e calcular o rash dela e comparar com a senha que está dentro de usuario.password//
         const senhaCorreta = bcryptjs.compareSync(password, usuario.password);
 
         if (!senhaCorreta){
-            return res.json({
+            return res.status(422).json({
                 erro: true,
                 mensagem: "Senha incorreta",
             });
         }
 
-    const token = jwt.sing({id: usuario.id}, "123456789", {
+    const token = jwt.sing({id: usuario.id}, process.env.SECRET_KEY, {
         expiresIn: "1h",
     });
 
-    res.json({
+    res.status(200).json({
         erro: false,
         mensagem:"Autenticado com sucesso!",
         token: token,
     });
-    }
+}
 }
 
 module.exports = AuthController; 
+
+
+
